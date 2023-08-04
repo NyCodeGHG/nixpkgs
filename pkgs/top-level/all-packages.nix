@@ -13026,6 +13026,8 @@ with pkgs;
 
   scanbd = callPackage ../tools/graphics/scanbd { };
 
+  scanservjs = callPackage ../servers/web-apps/scanservjs { };
+
   scdl = callPackage ../tools/misc/scdl { };
 
   scorecard = callPackage ../tools/security/scorecard { };
