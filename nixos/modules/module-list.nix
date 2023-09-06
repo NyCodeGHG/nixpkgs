@@ -630,6 +630,7 @@
   ./services/misc/confd.nix
   ./services/misc/cpuminer-cryptonight.nix
   ./services/misc/devmon.nix
+  ./services/misc/db-rest
   ./services/misc/dictd.nix
   ./services/misc/disnix.nix
   ./services/misc/docker-registry.nix
