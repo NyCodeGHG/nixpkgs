@@ -1,48 +1,42 @@
 { lib
-, stdenv
-, fetchurl
-, autoPatchelfHook
-, dpkg
-, wrapGAppsHook
-, alsa-lib
-, gtk3
-, mesa
-, nspr
-, nss
-, systemd
+
+, fetchFromGitHub
+, buildNpmPackage
 , nix-update-script
+, electron_25-bin
 }:
 
-stdenv.mkDerivation rec {
+buildNpmPackage rec {
   pname = "bruno";
-  version = "0.17.0";
+  version = "0.20.0";
 
-  src = fetchurl {
-    url = "https://github.com/usebruno/bruno/releases/download/v${version}/bruno_${version}_amd64_linux.deb";
-    hash = "sha256-4FF9SEgWuIPQSarOBTaEvgdgRTkR1caRYr/bjfFmTLE=";
+  src = fetchFromGitHub {
+    owner = "usebruno";
+    repo = "bruno";
+    rev = "276c9ce1b011576b6a849f5fd31338f821e571bc";
+    hash = "sha256-qGI+d9GsDuuq7xm7zhZo/hSg6f0NLaBCg+xCzAhsq9k=";
+    # rev = "v${version}";
+    # hash = "sha256-NaA7WO/DfETnFEDKRdojcZgSgNrNTbFFIffSxXxbBG4=";
   };
 
-  nativeBuildInputs = [ autoPatchelfHook dpkg wrapGAppsHook ];
-
   buildInputs = [
-    alsa-lib
-    gtk3
-    mesa
-    nspr
-    nss
+    electron_25-bin
   ];
 
-  runtimeDependencies = [ (lib.getLib systemd) ];
+  npmDepsHash = "sha256-qf7GB9a0X073CMgbxqmXkfggwdjAA06jH0xa3ma7wUs=";
+  # npmDepsHash = "sha256-s/BqHfpZJu1kB8FCXcPTyUCeduaFbt0Tuk959YL4mvA=";
+  npmWorkspace = "packages/bruno-electron";
+  # npmPackFlags = [ "--ignore-scripts" ];
 
-  installPhase = ''
-    runHook preInstall
-    mkdir -p "$out/bin"
-    cp -R opt $out
-    cp -R "usr/share" "$out/share"
-    ln -s "$out/opt/Bruno/bruno" "$out/bin/bruno"
-    chmod -R g-w "$out"
-    runHook postInstall
-  '';
+  # installPhase = ''
+  #   runHook preInstall
+  #   mkdir -p "$out/bin"
+  #   cp -R opt $out
+  #   cp -R "usr/share" "$out/share"
+  #   ln -s "$out/opt/Bruno/bruno" "$out/bin/bruno"
+  #   chmod -R g-w "$out"
+  #   runHook postInstall
+  # '';
 
   postFixup = ''
     substituteInPlace "$out/share/applications/bruno.desktop" \

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, Context};
-use rayon::slice::ParallelSliceMut;
+use rayon::{prelude::*, slice::ParallelSliceMut};
 use serde::{
     de::{self, Visitor},
     Deserialize, Deserializer,
@@ -8,8 +8,11 @@ use std::{
     cmp::Ordering,
     collections::{HashMap, HashSet},
     fmt,
+    str::FromStr,
 };
 use url::Url;
+
+use crate::util::get_url_body_with_retry;
 
 pub(super) fn packages(content: &str) -> anyhow::Result<Vec<Package>> {
     let lockfile: Lockfile = serde_json::from_str(content)?;
@@ -24,9 +27,20 @@ pub(super) fn packages(content: &str) -> anyhow::Result<Vec<Package>> {
                 .transpose()?
         }
         2 | 3 => lockfile.packages.map(|pkgs| {
-            pkgs.into_iter()
-                .filter(|(n, p)| !n.is_empty() && matches!(p.resolved, Some(UrlOrString::Url(_))))
-                .map(|(n, p)| Package { name: Some(n), ..p })
+            pkgs.into_par_iter()
+                .filter(|(n, _)| !n.is_empty())
+                .filter(|(_, p)| match p.resolved {
+                    None => true,
+                    Some(UrlOrString::Url(_)) => true,
+                    _ => false,
+                })
+                .filter(|(_, p)| p.version.is_some())
+                .map(|(n, p)| {
+                    let mut package = Package { name: Some(n), ..p };
+                    fetch_integrity(&mut package).unwrap();
+                    package
+                })
+                .filter(|p| p.integrity.is_some() && p.resolved.is_some())
                 .collect()
         }),
         _ => bail!(
@@ -76,11 +90,12 @@ struct OldPackage {
 pub(super) struct Package {
     #[serde(default)]
     pub(super) name: Option<String>,
+    pub(super) version: Option<UrlOrString>,
     pub(super) resolved: Option<UrlOrString>,
     pub(super) integrity: Option<HashCollection>,
 }
 
-#[derive(Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 #[serde(untagged)]
 pub(super) enum UrlOrString {
     Url(Url),
@@ -96,7 +111,7 @@ impl fmt::Display for UrlOrString {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct HashCollection(HashSet<Hash>);
 
 impl HashCollection {
@@ -243,14 +258,26 @@ fn to_new_packages(
             }
         }
 
+        let (resolved, integrity) = match package.version {
+            UrlOrString::Url(_) => (package.version, package.integrity),
+            UrlOrString::String(version) => match package.resolved {
+                Some(resolved) => (resolved, package.integrity),
+                None => {
+                    println!("{name}@{version}: Fetching integrity from registry");
+                    let metadata = get_registry_metadata(&name, &version)?;
+                    (
+                        UrlOrString::Url(metadata.dist.tarball),
+                        Some(metadata.dist.integrity),
+                    )
+                }
+            },
+        };
+
         new.push(Package {
             name: Some(name),
-            resolved: if matches!(package.version, UrlOrString::Url(_)) {
-                Some(package.version)
-            } else {
-                package.resolved
-            },
-            integrity: package.integrity,
+            version: None,
+            resolved: Some(resolved),
+            integrity,
         });
 
         if let Some(dependencies) = package.dependencies {
@@ -265,8 +292,70 @@ fn get_initial_url() -> anyhow::Result<Url> {
     Url::parse("git+ssh://git@a.b").context("initial url should be valid")
 }
 
+const NODE_MODULES_LEN: usize = "node_modules/".len();
+
+fn extract_name_from_path(path: &str) -> Option<&str> {
+    let index = path.rfind("node_modules/")? + NODE_MODULES_LEN;
+    Some(&path[index..])
+}
+
+fn fetch_integrity(package: &mut Package) -> anyhow::Result<()> {
+    let Some(name) = package
+        .name
+        .as_ref()
+        .and_then(|name| extract_name_from_path(name))
+    else {
+        return Ok(());
+    };
+    let Some(version) = &package.version else {
+        // skip packages without a version
+        return Ok(());
+    };
+
+    if let Some((resolved, integrity)) = match version {
+        UrlOrString::Url(_) => None,
+        UrlOrString::String(version) => match &package.resolved {
+            Some(resolved) => Some((resolved.clone(), package.integrity.clone())),
+            None => {
+                println!("{name}@{version}: Fetching integrity from registry");
+                let metadata = get_registry_metadata(&name, &version)?;
+                Some((
+                    UrlOrString::Url(metadata.dist.tarball),
+                    Some(metadata.dist.integrity),
+                ))
+            }
+        },
+    } {
+        package.resolved = Some(resolved);
+        package.integrity = integrity;
+    }
+
+    Ok(())
+}
+
+#[derive(Deserialize)]
+struct RegistryMetadata {
+    dist: DistributionMetadata,
+}
+
+#[derive(Deserialize)]
+struct DistributionMetadata {
+    integrity: HashCollection,
+    tarball: Url,
+}
+
+fn get_registry_metadata(package: &str, version: &str) -> anyhow::Result<RegistryMetadata> {
+    let body = get_url_body_with_retry(&Url::from_str(
+        format!("https://registry.npmjs.com/{package}/{version}").as_str(),
+    )?)?;
+    let metadata = serde_json::from_slice(&body)?;
+    Ok(metadata)
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::parse::lock::extract_name_from_path;
+
     use super::{
         get_initial_url, to_new_packages, Hash, HashCollection, OldPackage, Package, UrlOrString,
     };
@@ -306,6 +395,7 @@ mod tests {
         assert_eq!(new[0], Package {
             name: Some(String::from("sqlite3")),
             resolved: Some(UrlOrString::Url(Url::parse("git+ssh://git@github.com/mapbox/node-sqlite3.git#593c9d498be2510d286349134537e3bf89401c4a").unwrap())),
+            version: None,
             integrity: None
         });
 
@@ -329,5 +419,25 @@ mod tests {
             .into_best(),
             Some(Hash(String::from("sha512-foo")))
         );
+    }
+
+    #[test]
+    fn extract_name() {
+        assert_eq!(
+            Some("commander"),
+            extract_name_from_path("html-minifier-terser/node_modules/commander")
+        );
+        assert_eq!(
+            Some("@ampproject/remapping"),
+            extract_name_from_path("node_modules/@ampproject/remapping")
+        );
+        assert_eq!(
+            Some("which"),
+            extract_name_from_path("phantomjs-prebuilt/node_modules/which")
+        );
+        assert_eq!(
+            Some("yallist"),
+            extract_name_from_path("node_modules/update-notifier/node_modules/yallist")
+        )
     }
 }
