@@ -115,7 +115,6 @@ let
     pname = "restarter";
     version = buildVer;
     inherit src;
-    patches = [ ../patches/restarter-no-static-crt-override.patch ];
     sourceRoot = "source/native/restarter";
     cargoHash = restarterHash;
   };
