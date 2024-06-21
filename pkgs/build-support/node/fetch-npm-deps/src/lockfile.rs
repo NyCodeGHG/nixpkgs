@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -88,15 +88,15 @@ impl NpmLockfile {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct NpmLockfileV1 {
     #[serde(default)]
-    pub dependencies: HashMap<String, NpmDependency>,
+    pub dependencies: BTreeMap<String, NpmDependency>,
     #[serde(flatten)]
-    pub untyped: HashMap<String, Value>,
+    pub untyped: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
 pub struct NpmDependency {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
@@ -104,27 +104,27 @@ pub struct NpmDependency {
     pub integrity: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolved: Option<String>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependencies: HashMap<String, NpmDependency>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub dependencies: BTreeMap<String, NpmDependency>,
     #[serde(default)]
     pub bundled: bool,
     #[serde(flatten)]
-    pub untyped: HashMap<String, Value>,
+    pub untyped: BTreeMap<String, Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct NpmLockfileV2 {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub dependencies: HashMap<String, NpmDependency>,
-    #[serde(skip_serializing_if = "HashMap::is_empty")]
-    pub packages: HashMap<String, NpmPackage>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub dependencies: BTreeMap<String, NpmDependency>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub packages: BTreeMap<String, NpmPackage>,
     #[serde(flatten)]
-    pub untyped: HashMap<String, Value>,
+    pub untyped: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
 pub struct NpmPackage {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
@@ -135,7 +135,7 @@ pub struct NpmPackage {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub integrity: Option<String>,
     #[serde(flatten)]
-    pub untyped: HashMap<String, Value>,
+    pub untyped: BTreeMap<String, Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -143,8 +143,8 @@ pub struct NpmLockfileV3 {
     pub name: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub version: Option<String>,
-    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub packages: HashMap<String, NpmPackage>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub packages: BTreeMap<String, NpmPackage>,
     #[serde(flatten)]
-    pub untyped: HashMap<String, Value>,
+    pub untyped: BTreeMap<String, Value>,
 }

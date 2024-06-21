@@ -36,8 +36,8 @@
           '';
         };
 
-        makeTest = { name, src, hash, forceGitDeps ? false, forceEmptyCache ? false }: testers.invalidateFetcherByDrvHash fetchNpmDeps {
-          inherit name hash forceGitDeps forceEmptyCache;
+        makeTest = { name, src, hash, forceGitDeps ? false, forceEmptyCache ? false, npmLockOverrides ? { }, checkMissingLockfileFields ? false }: testers.invalidateFetcherByDrvHash fetchNpmDeps {
+          inherit name hash forceGitDeps forceEmptyCache npmLockOverrides checkMissingLockfileFields;
 
           src = makeTestSrc { inherit name src; };
         };
@@ -137,6 +137,19 @@
 
           hash = "sha256-FhxlJ0HdJMPiWe7+n1HaGLWOr/2HJEPwiS65uqXZM8Y=";
         };
+
+        overrides-simple = makeTest {
+          name = "overrides-simple";
+
+          src = /tmp/test-lockfiles/react/package-lock.json;
+
+          checkMissingLockfileFields = true;
+          npmLockOverrides = {
+            "node_modules/js-tokens".resolved = "https://registry.npmjs.org/js-tokens/-/js-tokens-4.0.0.tgz";
+          };
+
+          hash = "sha256-okvdxnmQUnHq7bRdy1HbUoBmJt7mGMYTFCDKgt3wR8U=";
+        };
       };
 
     meta = with lib; {
@@ -152,6 +165,8 @@
     , hash ? ""
     , forceGitDeps ? false
     , forceEmptyCache ? false
+    , npmLockOverrides ? { }
+    , checkMissingLockfileFields ? false
     , ...
     } @ args:
     let
@@ -165,8 +180,9 @@
 
       forceGitDeps_ = lib.optionalAttrs forceGitDeps { FORCE_GIT_DEPS = true; };
       forceEmptyCache_ = lib.optionalAttrs forceEmptyCache { FORCE_EMPTY_CACHE = true; };
+      checkMissingLockfileFields_ = lib.optionalAttrs checkMissingLockfileFields { CHECK_MISSING_FIELDS = true; };
     in
-    stdenvNoCC.mkDerivation (args // {
+    stdenvNoCC.mkDerivation ((builtins.removeAttrs args ["npmLockOverrides"]) // {
       inherit name;
 
       nativeBuildInputs = [ prefetch-npm-deps ];
@@ -198,10 +214,14 @@
       # `{ "registry.example.com": "example-registry-bearer-token", ... }`
       impureEnvVars = lib.fetchers.proxyImpureEnvVars ++ [ "NIX_NPM_TOKENS" ];
 
+      lockfileOverrides = builtins.toJSON npmLockOverrides;
+
+      passAsFile = [ "lockfileOverrides" ];
+
       SSL_CERT_FILE = if (hash_.outputHash == "" || hash_.outputHash == lib.fakeSha256 || hash_.outputHash == lib.fakeSha512 || hash_.outputHash == lib.fakeHash)
         then "${cacert}/etc/ssl/certs/ca-bundle.crt"
         else "/no-cert-file.crt";
 
       outputHashMode = "recursive";
-    } // hash_ // forceGitDeps_ // forceEmptyCache_);
+    } // hash_ // forceGitDeps_ // forceEmptyCache_ // checkMissingLockfileFields_);
 }

@@ -43,9 +43,11 @@
 , npmPruneFlags ? npmInstallFlags
   # Value for npm `--workspace` flag and directory in which the files to be installed are found.
 , npmWorkspace ? null
+, npmLockOverrides ? { }
+, checkMissingLockfileFields ? false
 , nodejs ? topLevelArgs.nodejs
 , npmDeps ?  fetchNpmDeps {
-  inherit forceGitDeps forceEmptyCache src srcs sourceRoot prePatch patches postPatch;
+  inherit forceGitDeps forceEmptyCache src srcs sourceRoot prePatch patches postPatch npmLockOverrides checkMissingLockfileFields;
   name = "${name}-npm-deps";
   hash = npmDepsHash;
 }
@@ -64,7 +66,7 @@ let
     inherit nodejs;
   };
 in
-stdenv.mkDerivation (args // {
+stdenv.mkDerivation ((builtins.removeAttrs args ["npmLockOverrides"]) // {
   inherit npmDeps npmBuildScript;
 
   nativeBuildInputs = nativeBuildInputs
@@ -83,6 +85,10 @@ stdenv.mkDerivation (args // {
 
   # Stripping takes way too long with the amount of files required by a typical Node.js project.
   dontStrip = args.dontStrip or true;
+
+  lockfileOverrides = builtins.toJSON npmLockOverrides;
+
+  passAsFile = [ "lockfileOverrides" ];
 
   meta = (args.meta or { }) // { platforms = args.meta.platforms or nodejs.meta.platforms; };
 })

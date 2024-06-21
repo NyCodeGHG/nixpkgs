@@ -28,10 +28,15 @@ npmConfigHook() {
 
     local -r cacheLockfile="$npmDeps/package-lock.json"
     local -r srcLockfile="$PWD/package-lock.json"
+    local -r tempLockfile="/tmp/package-lock.json.patched"
 
-    echo "Validating consistency between $srcLockfile and $cacheLockfile"
+    echo "Applying overrides to $srcLockfile"
 
-    if ! @diff@ "$srcLockfile" "$cacheLockfile"; then
+    @prefetchNpmDeps@ --apply-overrides "$srcLockfile" > "$tempLockfile"
+
+    echo "Validating consistency between $tempLockfile and $cacheLockfile"
+
+    if ! @diff@ "$tempLockfile" "$cacheLockfile"; then
       # If the diff failed, first double-check that the file exists, so we can
       # give a friendlier error msg.
       if ! [ -e "$srcLockfile" ]; then

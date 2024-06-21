@@ -1,14 +1,12 @@
 #![warn(clippy::pedantic)]
 
 use crate::cacache::{Cache, Key};
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use lockfile::{NpmDependency, NpmLockfile, NpmPackage};
+use overrides::apply_lockfile_overrides;
 use rayon::prelude::*;
 use std::{
-    collections::HashMap,
-    env, fs,
-    path::{Path, PathBuf},
-    process,
+    collections::{BTreeMap, HashMap}, env, fs, io::{stdout, BufWriter}, path::{Path, PathBuf}, process
 };
 use tempfile::tempdir;
 use url::Url;
@@ -18,6 +16,7 @@ mod cacache;
 mod lockfile;
 mod parse;
 mod util;
+mod overrides;
 
 fn cache_map_path() -> Option<PathBuf> {
     env::var_os("CACHE_MAP_PATH").map(PathBuf::from)
@@ -41,7 +40,7 @@ fn fixup_lockfile(
     mut lock: NpmLockfile,
     cache: Option<&HashMap<String, String>>,
 ) -> anyhow::Result<Option<NpmLockfile>> {
-    let mut fixed = false;
+    let mut fixed = apply_lockfile_overrides(&mut lock)?;
 
     match &mut lock {
         NpmLockfile::V1(lock) => fixup_v1_deps(&mut lock.dependencies, cache, &mut fixed),
@@ -66,7 +65,7 @@ fn fixup_lockfile(
 
 // Recursive helper to fixup v1 lockfile deps
 fn fixup_v1_deps(
-    dependencies: &mut HashMap<String, NpmDependency>,
+    dependencies: &mut BTreeMap<String, NpmDependency>,
     cache: Option<&HashMap<String, String>>,
     fixed: &mut bool,
 ) {
@@ -97,7 +96,7 @@ fn fixup_v1_deps(
 }
 
 fn fixup_v2_deps(
-    packages: &mut HashMap<String, NpmPackage>,
+    packages: &mut BTreeMap<String, NpmPackage>,
     cache: Option<&HashMap<String, String>>,
     fixed: &mut bool,
 ) {
@@ -170,32 +169,56 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    if args[1] == "--fixup-lockfile" {
-        let lock: NpmLockfile = serde_json::from_str(&fs::read_to_string(&args[2])?)?;
+    match args.get(1).map(String::as_str) {
+        Some("--fixup-lockfile") => {
+            let lock: NpmLockfile = serde_json::from_str(&fs::read_to_string(&args[2])?)?;
 
-        let cache = cache_map_path()
-            .map(|map_path| Ok::<_, anyhow::Error>(serde_json::from_slice(&fs::read(map_path)?)?))
-            .transpose()?;
+            let cache = cache_map_path()
+                .map(|map_path| Ok::<_, anyhow::Error>(serde_json::from_slice(&fs::read(map_path)?)?))
+                .transpose()?;
 
-        if let Some(fixed) = fixup_lockfile(lock, cache.as_ref())? {
-            println!("Fixing lockfile");
+            if let Some(fixed) = fixup_lockfile(lock, cache.as_ref())? {
+                println!("Fixing lockfile");
 
-            fs::write(&args[2], serde_json::to_string(&fixed)?)?;
+                fs::write(&args[2], serde_json::to_string(&fixed)?)?;
+            }
+
+            return Ok(());
+        },
+        Some("--map-cache") => {
+            let map = map_cache()?;
+
+            fs::write(
+                cache_map_path().expect("CACHE_MAP_PATH environment variable must be set"),
+                serde_json::to_string(&map)?,
+            )?;
+
+            return Ok(());
+        },
+        Some("--generate-lockfile-overrides") => {
+            let lock: NpmLockfile = serde_json::from_str(&fs::read_to_string(&args[2])?)?;
+            let missing_overrides = overrides::generate_missing_overrides(&lock)?;
+            println!("{}", serde_json::to_string_pretty(&missing_overrides)?);
+
+            return Ok(())
+        },
+        Some("--apply-overrides") => {
+            let mut lock: NpmLockfile = serde_json::from_str(&fs::read_to_string(&args[2])?)?;
+            overrides::apply_lockfile_overrides(&mut lock)?;
+            serde_json::to_writer_pretty(BufWriter::new(stdout()), &lock)?;
+
+            return Ok(())
+        },
+        Some(unknown) => {
+            bail!("Unknown flag: {unknown}")
         }
-
-        return Ok(());
-    } else if args[1] == "--map-cache" {
-        let map = map_cache()?;
-
-        fs::write(
-            cache_map_path().expect("CACHE_MAP_PATH environment variable must be set"),
-            serde_json::to_string(&map)?,
-        )?;
-
-        return Ok(());
+        None => {}
     }
 
     let lock_content = fs::read_to_string(&args[1])?;
+    let mut lock: NpmLockfile = serde_json::from_str(&lock_content)?;
+
+    let modified_lockfile = apply_lockfile_overrides(&mut lock)?;
 
     let out_tempdir;
 
@@ -207,8 +230,18 @@ fn main() -> anyhow::Result<()> {
         (out_tempdir.path(), true)
     };
 
+    if env::var("CHECK_MISSING_FIELDS").is_ok() {
+        let missing_hashes = parse::check_for_missing_fields(&lock)?;
+        if !missing_hashes.is_empty() {
+            for missing in missing_hashes {
+                eprintln!("Package {} has missing resolved/integrity fields", missing.name.unwrap());
+            }
+            anyhow::bail!("Lockfile needs fixing.");
+        }
+    }
+
     let packages = parse::lockfile(
-        &lock_content,
+        &lock,
         env::var("FORCE_GIT_DEPS").is_ok(),
         env::var("FORCE_EMPTY_CACHE").is_ok(),
     )?;
@@ -236,7 +269,13 @@ fn main() -> anyhow::Result<()> {
         Ok::<_, anyhow::Error>(())
     })?;
 
-    fs::write(out.join("package-lock.json"), lock_content)?;
+    // re-serialize the lockfile if we modified it.
+    if modified_lockfile {
+        println!("Reserializing patched lockfile.");
+        fs::write(out.join("package-lock.json"), serde_json::to_string_pretty(&lock)?)?;
+    } else {
+        fs::write(out.join("package-lock.json"), lock_content)?;
+    }
 
     if print_hash {
         println!("{}", util::make_sri_hash(out)?);

@@ -7,22 +7,38 @@ use serde::{
 };
 use std::{
     cmp::Ordering,
-    collections::{HashMap, HashSet},
+    collections::{BTreeMap, HashMap, HashSet},
     fmt,
 };
 use url::Url;
 
-pub(super) fn extract_packages(content: &str) -> anyhow::Result<Vec<NpmPackage>> {
-    let lockfile: NpmLockfile = serde_json::from_str(content)?;
-
+pub(super) fn extract_packages(
+    lockfile: &NpmLockfile,
+    deduplicate: bool,
+    include_missing_resolved: bool,
+) -> anyhow::Result<Vec<NpmPackage>> {
     let mut packages = match lockfile {
         NpmLockfile::V1(lock) => {
             let initial_url = get_initial_url()?;
 
-            to_new_packages(lock.dependencies, &initial_url)?
+            to_new_packages(lock.dependencies.clone(), &initial_url)?
         }
-        NpmLockfile::V2(lock) => get_valid_external_dependencies(lock.packages),
-        NpmLockfile::V3(lock) => get_valid_external_dependencies(lock.packages),
+        NpmLockfile::V2(lock) => {
+            let deps = get_valid_external_dependencies(lock.packages.clone());
+            if include_missing_resolved {
+                deps.collect()
+            } else {
+                filter_resolved(deps).collect()
+            }
+        }
+        NpmLockfile::V3(lock) => {
+            let deps = get_valid_external_dependencies(lock.packages.clone());
+            if include_missing_resolved {
+                deps.collect()
+            } else {
+                filter_resolved(deps).collect()
+            }
+        }
     };
 
     packages.par_sort_by(|x, y| {
@@ -38,19 +54,25 @@ pub(super) fn extract_packages(content: &str) -> anyhow::Result<Vec<NpmPackage>>
             )
     });
 
-    packages.dedup_by(|x, y| x.resolved == y.resolved);
+    if deduplicate {
+        packages.dedup_by(|x, y| x.resolved == y.resolved);
+    }
 
     Ok(packages)
 }
 
-fn get_valid_external_dependencies(packages: HashMap<String, NpmPackage>) -> Vec<NpmPackage> {
+fn get_valid_external_dependencies(
+    packages: BTreeMap<String, NpmPackage>,
+) -> impl Iterator<Item = NpmPackage> {
     packages
         .into_iter()
-        .filter(|(n, p)| {
-            !n.is_empty() && matches!(p.resolved.as_ref().map(|r| Url::parse(&r)), Some(Ok(_)))
-        })
+        .filter(|(n, _)| !n.is_empty())
         .map(|(n, p)| NpmPackage { name: Some(n), ..p })
-        .collect()
+}
+
+/// filters out packages which don't have valid resolved fields
+fn filter_resolved(packages: impl Iterator<Item = NpmPackage>) -> impl Iterator<Item = NpmPackage> {
+    packages.filter(|p| matches!(p.resolved.as_ref().map(|r| Url::parse(&r)), Some(Ok(_))))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -160,7 +182,7 @@ impl Ord for Hash {
 
 #[allow(clippy::case_sensitive_file_extension_comparisons)]
 fn to_new_packages(
-    old_packages: HashMap<String, NpmDependency>,
+    old_packages: BTreeMap<String, NpmDependency>,
     initial_url: &Url,
 ) -> anyhow::Result<Vec<NpmPackage>> {
     let mut new = Vec::new();
@@ -232,17 +254,17 @@ fn get_initial_url() -> anyhow::Result<Url> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_initial_url, extract_packages, to_new_packages, Hash, HashCollection};
-    use crate::lockfile::{NpmDependency, NpmPackage};
+    use super::{extract_packages, get_initial_url, to_new_packages, Hash, HashCollection};
+    use crate::lockfile::{NpmDependency, NpmLockfile, NpmLockfileV1, NpmPackage};
     use std::{
         cmp::Ordering,
-        collections::{HashMap, HashSet},
+        collections::{BTreeMap, HashMap, HashSet},
     };
 
     #[test]
     fn git_shorthand_v1() -> anyhow::Result<()> {
         let old = {
-            let mut o = HashMap::new();
+            let mut o = BTreeMap::new();
             o.insert(
                 String::from("sqlite3"),
                 NpmDependency {
@@ -291,25 +313,25 @@ mod tests {
 
     #[test]
     fn parse_lockfile_correctly() {
-        let packages = extract_packages(
-            r#"{
-                "name": "node-ddr",
-                "version": "1.0.0",
-                "lockfileVersion": 1,
-                "requires": true,
-                "dependencies": {
-                    "string-width-cjs": {
-                        "version": "npm:string-width@4.2.3",
-                        "resolved": "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz",
-                        "integrity": "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==",
-                        "requires": {
-                            "emoji-regex": "^8.0.0",
-                            "is-fullwidth-code-point": "^3.0.0",
-                            "strip-ansi": "^6.0.1"
-                        }
+        let lockfile = serde_json::from_str(r#"{
+            "name": "node-ddr",
+            "version": "1.0.0",
+            "lockfileVersion": 1,
+            "requires": true,
+            "dependencies": {
+                "string-width-cjs": {
+                    "version": "npm:string-width@4.2.3",
+                    "resolved": "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz",
+                    "integrity": "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==",
+                    "requires": {
+                        "emoji-regex": "^8.0.0",
+                        "is-fullwidth-code-point": "^3.0.0",
+                        "strip-ansi": "^6.0.1"
                     }
                 }
-            }"#).unwrap();
+            }
+        }"#).unwrap();
+        let packages = extract_packages(&lockfile, true, false).unwrap();
 
         assert_eq!(packages.len(), 1);
         assert_eq!(

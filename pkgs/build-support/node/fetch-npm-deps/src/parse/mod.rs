@@ -1,6 +1,6 @@
-use crate::lockfile::NpmPackage;
+use crate::lockfile::{NpmLockfile, NpmPackage};
 use anyhow::{anyhow, bail, Context};
-use lock::HashCollection;
+use lock::{extract_packages, HashCollection};
 use log::{debug, info};
 use rayon::prelude::*;
 use serde_json::{Map, Value};
@@ -17,13 +17,13 @@ use crate::util;
 pub mod lock;
 
 pub fn lockfile(
-    content: &str,
+    lock: &NpmLockfile,
     force_git_deps: bool,
     force_empty_cache: bool,
 ) -> anyhow::Result<Vec<Package>> {
-    debug!("parsing lockfile with contents:\n{content}");
+    debug!("parsing lockfile with contents:\n{lock:#?}");
 
-    let mut packages = lock::extract_packages(content)
+    let mut packages = lock::extract_packages(lock, true, false)
         .context("failed to extract packages from lockfile")?
         .into_par_iter()
         .map(|p| {
@@ -79,7 +79,7 @@ pub fn lockfile(
 
         if let Ok(lockfile_contents) = lockfile_contents {
             new.append(&mut lockfile(
-                &lockfile_contents,
+                &serde_json::from_str(&lockfile_contents)?,
                 force_git_deps,
                 // force_empty_cache is turned on here since recursively parsed lockfiles should be
                 // allowed to have an empty cache without erroring by default
@@ -99,6 +99,14 @@ pub fn lockfile(
     packages.dedup_by(|x, y| x.url == y.url);
 
     Ok(packages)
+}
+
+pub fn check_for_missing_fields(lockfile: &NpmLockfile) -> anyhow::Result<Vec<NpmPackage>> {
+    let packages = extract_packages(lockfile, false, true)?;
+    Ok(packages
+        .into_iter()
+        .filter(|p| p.resolved.is_none() && p.name.as_ref().unwrap().contains("node_modules"))
+        .collect())
 }
 
 #[derive(Debug)]
