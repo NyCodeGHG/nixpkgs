@@ -9,6 +9,7 @@
   alsa-lib,
   brotli,
   bzip2,
+  celt,
   ffmpeg,
   jack2,
   lame,
@@ -94,6 +95,7 @@ rustPlatform.buildRustPackage rec {
     alsa-lib
     brotli
     bzip2
+    celt
     ffmpeg
     jack2
     lame
