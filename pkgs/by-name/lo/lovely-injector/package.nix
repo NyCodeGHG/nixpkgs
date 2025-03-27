@@ -5,10 +5,12 @@
   versionCheckHook,
   writeShellScript,
   lua,
+  stdenv,
 }:
 
 let
   version = "0.7.1";
+  isCross = !(stdenv.buildPlatform.canExecute stdenv.hostPlatform);
 in
 
 rustPlatform.buildRustPackage {
@@ -30,18 +32,23 @@ rustPlatform.buildRustPackage {
 
   # lovely-injector depends on nightly rust features
   env.RUSTC_BOOTSTRAP = 1;
-  nativeBuildInputs = [
-    lua
-  ];
-  nativeInstallCheckInputs = [
-    versionCheckHook
-  ];
-  doInstallCheck = true;
-  versionCheckProgramArg = [ "${placeholder "out"}" ];
-  versionCheckProgram = writeShellScript "lovely-version-check" ''
-    export LD_PRELOAD="$1/lib/liblovely.so"
-    exec ${lua}/bin/lua < /dev/null
+
+  postInstall = lib.optionalString stdenv.hostPlatform.isWindows ''
+    rm $out/lib/*.a
+    mv $out/bin/*.dll $out/lib
+    rmdir $out/bin
   '';
+
+  nativeInstallCheckInputs = lib.optional (!isCross) [ versionCheckHook ];
+  doInstallCheck = true;
+
+  versionCheckProgramArg = lib.optional stdenv.hostPlatform.isLinux [ "${placeholder "out"}" ];
+  versionCheckProgram = lib.optional (stdenv.hostPlatform.isLinux && !isCross) (
+    writeShellScript "lovely-version-check" ''
+      export LD_PRELOAD="$1/lib/liblovely.so"
+      exec ${lib.getExe lua} < /dev/null
+    ''
+  );
 
   meta = {
     description = "Runtime lua injector for games built with LÖVE";
@@ -54,6 +61,12 @@ rustPlatform.buildRustPackage {
     homepage = "https://github.com/ethangreen-dev/lovely-injector";
     downloadPage = "https://github.com/ethangreen-dev/lovely-injector/releases";
     maintainers = [ lib.maintainers.antipatico ];
-    platforms = [ "x86_64-linux" ];
+    platforms = [
+      "x86_64-linux"
+      "i686-linux"
+      "x86_64-windows"
+      "i686-windows"
+      "x86_64-darwin"
+    ];
   };
 }
