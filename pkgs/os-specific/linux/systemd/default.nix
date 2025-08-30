@@ -59,7 +59,10 @@
   iptables,
   withSelinux ? false,
   libselinux,
-  withLibseccomp ? lib.meta.availableOn stdenv.hostPlatform libseccomp,
+  withLibseccomp ?
+    (lib.meta.availableOn stdenv.hostPlatform libseccomp)
+    # Seccomp sandboxing leads to segfaults on 32-Bit PowerPC
+    && (stdenv.hostPlatform.system != "powerpc-linux"),
   libseccomp,
   withKexectools ? lib.meta.availableOn stdenv.hostPlatform kexec-tools,
   kexec-tools,
