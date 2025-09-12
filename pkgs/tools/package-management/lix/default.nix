@@ -138,7 +138,7 @@ let
 in
 lib.makeExtensible (
   self:
-  {
+   {
     inherit makeLixScope;
 
     lix_2_93 = self.makeLixScope {
@@ -199,6 +199,11 @@ lib.makeExtensible (
             name = "lix-2.93-toml11-4-6.patch";
             url = "https://git.lix.systems/lix-project/lix/commit/b6d5670bcffebdd43352ea79b36135e35a8148d9.patch";
             hash = "sha256-f4s0TR5MhNMNM5TYLOR7K2/1rtZ389KDjTCKFVK0OcE=";
+          })
+          (fetchpatch2 {
+            name = "fix-libatomic.patch";
+            url = "https://git.lix.systems/lix-project/lix/commit/b7c2f17e9133e8b85d41c58b52f9d4e3254f41da.patch";
+            hash = "sha256-O8AYhgtFY4xRm9gy3OF0+sEoHubwFW4zTijWCBUJxco=";
           })
         ];
       };
