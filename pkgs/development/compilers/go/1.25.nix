@@ -173,6 +173,9 @@ stdenv.mkDerivation (finalAttrs: {
       # https://github.com/golang/go/issues/19074 - Dropped support for big-endian POWER < 8, with community pushback
       # https://github.com/golang/go/issues/73349 - upstream will not accept submissions to fix this
       "powerpc64-linux"
+      # No support for ppc32
+      # https://github.com/golang/go/issues/22885
+      "powerpc-linux"
     ];
     mainProgram = "go";
   };
