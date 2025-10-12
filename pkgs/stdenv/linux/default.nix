@@ -78,6 +78,7 @@
             else
               ./bootstrap-files/mips64el-unknown-linux-gnuabi64.nix
           );
+          powerpc-linux = import ./bootstrap-files/powerpc-unknown-linux-gnu.nix;
           powerpc64-linux = import (
             if localSystem.isAbiElfv2 then
               ./bootstrap-files/powerpc64-unknown-linux-gnuabielfv2.nix
