@@ -1,0 +1,19 @@
+Commit ID: a1e7687343b8faae4995bdced5c6fa87bcb97149
+Change ID: prlsssvmxwvlyxkyulowlyzwkvqqpupz
+Author   : Marie Ramlow <me@nycode.dev> (2025-08-27 21:28:42)
+Committer: Marie Ramlow <me@nycode.dev> (2025-08-27 21:29:12)
+
+    meson: fix build on powerpc-linux
+
+diff --git a/nix-meson-build-support/libatomic/meson.build b/nix-meson-build-support/libatomic/meson.build
+index d16d238176..1c014bee7d 100644
+--- a/nix-meson-build-support/libatomic/meson.build
++++ b/nix-meson-build-support/libatomic/meson.build
+@@ -3,6 +3,6 @@
+ # This is needed for std::atomic on some platforms
+ # We did not manage to test this reliably on all platforms, so we hardcode
+ # it for now.
+-if host_machine.cpu_family() == 'arm'
++if host_machine.cpu_family() in [ 'arm', 'ppc' ]
+   deps_other += cxx.find_library('atomic')
+ endif
