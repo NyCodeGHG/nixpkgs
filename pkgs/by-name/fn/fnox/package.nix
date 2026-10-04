@@ -10,6 +10,7 @@
   cacert,
   versionCheckHook,
   nix-update-script,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -33,10 +34,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
     pkg-config
   ];
 
-  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+  buildInputs = [
+    openssl
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
     dbus
     udev
   ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   nativeCheckInputs = [ cacert ];
   env.SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
