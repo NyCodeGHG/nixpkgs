@@ -98,13 +98,16 @@ rustPlatform.buildRustPackage (finalAttrs: {
     wrapGAppsHook4
   ];
 
-  buildInputs =
-    lib.optionals stdenv.hostPlatform.isLinux [ webkitgtk_4_1 ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [ openssl ];
+  buildInputs = [ openssl ] ++
+    lib.optionals stdenv.hostPlatform.isLinux [ webkitgtk_4_1 ];
 
   preBuild = ''
     cp -r ${finalAttrs.gephgui}/ gephgui/dist/
   '';
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   postInstall =
     lib.optionalString stdenv.hostPlatform.isLinux ''
