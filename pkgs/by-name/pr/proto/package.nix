@@ -6,7 +6,7 @@
   libiconv,
   makeBinaryWrapper,
   pkg-config,
-  perl,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -22,15 +22,19 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-CEfROSFkeVb6Bj6cbLJ33jzHhSxY8jprhbVYfgRXYcg=";
 
-  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
-    libiconv
+  buildInputs = [
+    openssl
+  ]
+  ++ lib.optional stdenv.hostPlatform.isDarwin libiconv;
 
-  ];
   nativeBuildInputs = [
     makeBinaryWrapper
     pkg-config
-    perl
   ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   # Tests requires network access
   doCheck = false;
