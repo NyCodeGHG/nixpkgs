@@ -8,6 +8,7 @@
   nix-update-script,
   testers,
   rustdesk-server,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -31,7 +32,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
   buildInputs = [
     libsodium
     sqlite
+    openssl
   ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   passthru = {
     updateScript = nix-update-script { };
