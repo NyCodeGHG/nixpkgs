@@ -8,6 +8,8 @@
   testers,
   veilid,
   gitUpdater,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -27,13 +29,19 @@ rustPlatform.buildRustPackage (finalAttrs: {
     capnproto
     cmake
     protobuf
+    pkg-config
   ];
+
+  buildInputs = [ openssl ];
 
   cargoBuildFlags = [
     "--workspace"
   ];
 
-  env.RUSTFLAGS = "--cfg tokio_unstable";
+  env = {
+    OPENSSL_NO_VENDOR = true;
+    RUSTFLAGS = "--cfg tokio_unstable";
+  };
 
   doCheck = false;
 
