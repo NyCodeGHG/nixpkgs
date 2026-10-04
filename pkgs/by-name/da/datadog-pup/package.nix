@@ -6,6 +6,8 @@
   rustPlatform,
   stdenv,
   versionCheckHook,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -20,6 +22,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
     repo = "pup";
     tag = "v${finalAttrs.version}";
     hash = "sha256-iEJ4tycN/WBuFBYe6QRXuNewC4bknfQ4yqt8vlaWu7k=";
+  };
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
   };
 
   cargoHash = "sha256-EqoHxnkIq6PE1FoXxN9wrsZKMe4iWB/YPTlSZKo1sf0=";
