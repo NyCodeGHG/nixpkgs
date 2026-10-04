@@ -7,6 +7,7 @@
   oniguruma,
   versionCheckHook,
   nix-update-script,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -31,7 +32,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     })
   ];
 
-  env.RUSTONIG_SYSTEM_LIBONIG = true;
+  env = {
+    RUSTONIG_SYSTEM_LIBONIG = true;
+    OPENSSL_NO_VENDOR = true;
+  };
 
   cargoHash = "sha256-qiYspv2KcvzxVshVpAMlSqFDqbbiutpLyWMz+QSIVmQ=";
 
@@ -41,6 +45,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   buildInputs = [
     oniguruma
+    openssl
   ];
 
   nativeInstallCheckInputs = [
