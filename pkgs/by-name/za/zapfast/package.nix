@@ -5,7 +5,6 @@
   fetchFromGitHub,
   pkg-config,
   cmake,
-  perl,
   makeWrapper,
   icnsify,
   nix-update-script,
@@ -20,6 +19,7 @@
   libxrandr,
   liberation_ttf,
   apple-sdk_15,
+  openssl,
 }:
 
 let
@@ -51,7 +51,6 @@ rustPlatform.buildRustPackage rec {
   nativeBuildInputs = [
     pkg-config
     cmake
-    perl
   ]
   ++ lib.optionals stdenv.hostPlatform.isLinux [ makeWrapper ]
   ++ lib.optionals stdenv.hostPlatform.isDarwin [
@@ -59,15 +58,20 @@ rustPlatform.buildRustPackage rec {
     icnsify
   ];
 
-  buildInputs =
-    lib.optionals stdenv.hostPlatform.isLinux [
-      alsa-lib
-      libGL
-      libx11
-    ]
-    ++ lib.optionals stdenv.hostPlatform.isDarwin [ apple-sdk_15 ];
+  buildInputs = [
+    openssl
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    alsa-lib
+    libGL
+    libx11
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ apple-sdk_15 ];
 
-  env.ZAPFAST_TEST_RTL_FONT = "${liberation_ttf}/share/fonts/truetype/LiberationSans-Regular.ttf";
+  env = {
+    ZAPFAST_TEST_RTL_FONT = "${liberation_ttf}/share/fonts/truetype/LiberationSans-Regular.ttf";
+    OPENSSL_NO_VENDOR = true;
+  };
 
   cargoTestFlags = lib.optionals stdenv.hostPlatform.isDarwin [
     "--lib"
