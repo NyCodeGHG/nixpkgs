@@ -5,6 +5,7 @@
 
   perl,
   pkg-config,
+  openssl,
 
   nix-update-script,
 }:
@@ -27,6 +28,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
     perl
     pkg-config
   ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   passthru.updateScript = nix-update-script { };
 
