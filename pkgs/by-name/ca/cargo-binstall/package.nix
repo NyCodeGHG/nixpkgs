@@ -7,6 +7,7 @@
   xz,
   zstd,
   versionCheckHook,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -30,7 +31,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
     bzip2
     xz
     zstd
+    openssl
   ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   buildNoDefaultFeatures = true;
   buildFeatures = [
