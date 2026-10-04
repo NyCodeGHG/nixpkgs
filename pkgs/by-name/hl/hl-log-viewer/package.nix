@@ -6,6 +6,8 @@
   fetchFromGitHub,
   nix-update-script,
   versionCheckHook,
+  openssl,
+  pkg-config,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "hl-log-viewer";
@@ -20,7 +22,16 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-RXIXoF3z2Zleje1OakHXQxPmNkRcqHjINRZYqMXS8U0=";
 
-  nativeBuildInputs = [ installShellFiles ];
+  nativeBuildInputs = [
+    installShellFiles
+    pkg-config
+  ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd hl \
