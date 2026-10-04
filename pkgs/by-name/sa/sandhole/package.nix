@@ -4,10 +4,11 @@
   installShellFiles,
   lib,
   lld,
-  perl,
   rustPlatform,
   stdenv,
   versionCheckHook,
+  openssl,
+  pkg-config,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "sandhole";
@@ -25,10 +26,15 @@ rustPlatform.buildRustPackage (finalAttrs: {
   nativeBuildInputs = [
     cmake
     installShellFiles
-    perl
+    openssl
+    pkg-config
   ]
   ++ lib.optionals stdenv.hostPlatform.isDarwin [ lld ];
   strictDeps = true;
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   useNextest = true;
   # Skip tests that require networking.
