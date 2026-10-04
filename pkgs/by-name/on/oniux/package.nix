@@ -2,8 +2,9 @@
   lib,
   rustPlatform,
   fetchFromGitLab,
-  perl,
   nix-update-script,
+  openssl,
+  pkg-config,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "oniux";
@@ -19,9 +20,13 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-zNo7HI+p5grdTayXDehMwAeEq4aOPYGSPb06c4ib95s=";
 
-  nativeBuildInputs = [
-    perl
-  ];
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   passthru.updateScript = nix-update-script { };
 
