@@ -9,6 +9,8 @@
   installShellFiles,
   mold,
   withQuic ? false, # with QUIC protocol support
+  openssl,
+  pkg-config,
 
   formats,
   bash,
@@ -33,7 +35,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
     rustPlatform.bindgenHook
     installShellFiles
     mold
+    pkg-config
   ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   buildNoDefaultFeatures = stdenv.hostPlatform.isMips;
   buildFeatures = lib.optional stdenv.hostPlatform.isMips "mips" ++ lib.optional withQuic "quic";
