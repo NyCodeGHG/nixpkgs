@@ -4,6 +4,8 @@
   rustPlatform,
   perl,
   cacert,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -21,9 +23,15 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-yecVTD/UC0vNuCRpLBr7GxT3Bs+Zs5oZHNcBa2HQns4=";
 
-  nativeBuildInputs = [ perl ];
+  nativeBuildInputs = [ pkg-config ];
 
-  env.SSL_CERT_FILE = "${cacert}/etc/ssl/certs/ca-bundle.crt";
+  buildInputs = [ openssl ];
+
+  nativeCheckInputs = [ cacert ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   __darwinAllowLocalNetworking = true;
 
