@@ -3,6 +3,8 @@
   rustPlatform,
   makeBinaryWrapper,
   steel,
+  openssl,
+  pkg-config,
 }:
 rustPlatform.buildRustPackage {
   pname = "steel-language-server";
@@ -17,7 +19,16 @@ rustPlatform.buildRustPackage {
   nativeBuildInputs = [
     makeBinaryWrapper
     rustPlatform.bindgenHook
+    pkg-config
   ];
+
+  buildInputs = [
+    openssl
+  ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   cargoBuildFlags = [
     "--package"
