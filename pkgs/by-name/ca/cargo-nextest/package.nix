@@ -4,6 +4,8 @@
   rustPlatform,
   fetchFromGitHub,
   nix-update-script,
+  openssl,
+  pkg-config,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "cargo-nextest";
@@ -20,6 +22,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
   patches = lib.optionals stdenv.hostPlatform.isDarwin [
     ./no-dtrace-macos.patch
   ];
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   cargoHash = "sha256-ZW0/JQ9RECxfDn479ww4bO4ixoMGaM+GtGUOCWy2Cyg=";
 
