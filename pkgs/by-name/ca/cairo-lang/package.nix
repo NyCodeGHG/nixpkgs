@@ -4,6 +4,8 @@
   fetchFromGitHub,
   rustfmt,
   perl,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -19,14 +21,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-xU2fCGvHSwf+vX4KH+xolC3qlyQXjDtazmZSiRlQQok=";
 
-  # openssl crate requires perl during build process
-  nativeBuildInputs = [
-    perl
-  ];
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
 
   nativeCheckInputs = [
     rustfmt
   ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   checkFlags = [
     # Requires a mythical rustfmt 2.0 or a nightly compiler
