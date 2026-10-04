@@ -12,6 +12,8 @@
   binaryen,
   lld,
   rust-jemalloc-sys-unprefixed,
+  pkg-config,
+  openssl,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "rauthy";
@@ -29,12 +31,19 @@ rustPlatform.buildRustPackage (finalAttrs: {
     lld
     nodejs
     npmHooks.npmConfigHook
-    perl
     wasm-bindgen-cli_0_2_126
     wasm-pack
+    pkg-config
   ];
 
-  buildInputs = [ rust-jemalloc-sys-unprefixed ];
+  buildInputs = [
+    rust-jemalloc-sys-unprefixed
+    openssl
+  ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   npmRoot = "frontend";
 
