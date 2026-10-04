@@ -19,6 +19,7 @@
   lld,
   vulkan-loader,
   writableTmpDirAsHomeHook,
+  openssl,
 
   # Test deps
   curl,
@@ -71,6 +72,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     libffi
     sqlite
     zstd
+    openssl
   ];
 
   nativeBuildInputs = [
@@ -115,6 +117,8 @@ rustPlatform.buildRustPackage (finalAttrs: {
   env.ZSTD_SYS_USE_PKG_CONFIG = true;
   # de-vendor lcms2
   env.LCMS2_LIB_DIR = lib.makeLibraryPath [ lcms2 ];
+  # de-vendor OpenSSL
+  env.OPENSSL_NO_VENDOR = true;
 
   # Don't run checks on hydra as they've been observed to be flakey for us and
   # other distros CI: https://gitlab.alpinelinux.org/alpine/aports/-/blob/bec8b026686323b496365b825ad14fdf4473adf2/community/deno/APKBUILD#L79
