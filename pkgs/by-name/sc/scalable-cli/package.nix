@@ -4,6 +4,8 @@
   nix-update-script,
   rustPlatform,
   versionCheckHook,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -17,6 +19,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
     repo = "scalable-cli";
     tag = "v${finalAttrs.version}";
     hash = "sha256-37ofxUflOgQfcFh5t1i+6FnrWtsRHUxafYYQbcAYgBQ=";
+  };
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
   };
 
   cargoHash = "sha256-P3CI304NP6T8Z5dI0A4KmeglezvGoiw7EL+oqXJi9UA=";
