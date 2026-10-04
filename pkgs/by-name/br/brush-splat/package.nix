@@ -14,6 +14,7 @@
   libxcursor,
   libxi,
   libxrandr,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -35,6 +36,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   buildInputs = [
     zstd
+    openssl
   ]
   ++ lib.optionals stdenv.hostPlatform.isLinux [
     libx11
@@ -48,6 +50,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   env = {
     ZSTD_SYS_USE_PKG_CONFIG = true;
+    OPENSSL_NO_VENDOR = true;
   };
 
   postFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
