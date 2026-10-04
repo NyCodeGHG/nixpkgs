@@ -5,6 +5,8 @@
   gitMinimal,
   versionCheckHook,
   nix-update-script,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -23,6 +25,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
   cargoHash = "sha256-azgmxJP3iQO+WfJCWqfi19rCSb6D0a0luWcgEW+8Sbg=";
 
   strictDeps = true;
+
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   nativeCheckInputs = [
     gitMinimal
