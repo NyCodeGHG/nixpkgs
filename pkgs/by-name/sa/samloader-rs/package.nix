@@ -2,8 +2,9 @@
   lib,
   rustPlatform,
   fetchFromGitHub,
-  perl,
   nix-update-script,
+  openssl,
+  pkg-config,
 }:
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "samloader-rs";
@@ -18,7 +19,13 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-FOoL3D0IaZ+MQKLHv1v0g/FkZQeG5GgR4D7K/Xbx9wU=";
 
-  nativeBuildInputs = [ perl ];
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   checkFeatures = [ "mock" ];
 
