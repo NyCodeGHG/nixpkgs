@@ -15,6 +15,7 @@
   perl,
   darwin,
   libiconv,
+  openssl,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -38,9 +39,15 @@ rustPlatform.buildRustPackage (finalAttrs: {
     xmlto
     docbook_xsl
     docbook_xml_dtd_45
-    perl
   ];
-  buildInputs = [ curl ];
+  buildInputs = [
+    curl
+    openssl
+  ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   nativeCheckInputs = [
     git
