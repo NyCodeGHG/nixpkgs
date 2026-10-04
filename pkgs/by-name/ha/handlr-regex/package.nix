@@ -7,6 +7,8 @@
   installShellFiles,
   nix-update-script,
   stdenv,
+  openssl,
+  pkg-config,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -29,9 +31,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
   nativeBuildInputs = [
     installShellFiles
     shared-mime-info
+    pkg-config
   ];
 
-  buildInputs = [ libiconv ];
+  buildInputs = [
+    libiconv
+    openssl
+  ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   preCheck = ''
     export HOME=$TEMPDIR
