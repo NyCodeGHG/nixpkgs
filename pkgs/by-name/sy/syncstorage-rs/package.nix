@@ -51,12 +51,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
     python3
   ];
 
-  buildInputs =
-    lib.optional (dbBackend == "mysql") libmysqlclient
-    ++ lib.optionals (dbBackend == "postgresql") [
-      libpq
-      openssl
-    ];
+  buildInputs = [
+    openssl
+  ]
+  ++ lib.optional (dbBackend == "mysql") libmysqlclient
+  ++ lib.optional (dbBackend == "postgresql") libpq;
+
 
   buildNoDefaultFeatures = true;
   # The syncserver "postgres" feature only enables syncstorage-db/postgres.
@@ -74,6 +74,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   env = {
     SWAGGER_UI_DOWNLOAD_URL = "file://${swaggerUi}";
+    OPENSSL_NO_VENDOR = true;
   };
 
   preFixup = ''
