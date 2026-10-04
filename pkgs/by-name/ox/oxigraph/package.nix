@@ -3,6 +3,8 @@
   rustPlatform,
   fetchFromGitHub,
   installShellFiles,
+  openssl,
+  pkg-config,
 }:
 
 let
@@ -29,7 +31,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
   nativeBuildInputs = [
     rustPlatform.bindgenHook
     installShellFiles
+    pkg-config
   ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    OPENSSL_NO_VENDOR = true;
+  };
 
   buildAndTestSubdir = "cli";
   buildNoDefaultFeatures = true;
