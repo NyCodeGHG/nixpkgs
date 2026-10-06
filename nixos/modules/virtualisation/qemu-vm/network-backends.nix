@@ -7,6 +7,7 @@ let
   inherit (lib)
     mkOption
     mkPackageOption
+    filter
     types
     ;
 in
@@ -32,9 +33,49 @@ in
                     any explicitly set forwarding rules.
                   '';
                 };
+                hostfwd = mkOption {
+                  type = types.listOf types.str;
+                  default = [ ];
+                  description = "QEMU host port forwardings.";
+                };
+                guestfwd = mkOption {
+                  type = types.listOf types.str;
+                  default = [ ];
+                  description = "QEMU guest port forwardings.";
+                };
+              };
+              config = {
+                hostfwd = lib.pipe config.forwardPorts [
+                  (filter ({ from, ... }: from == "host"))
+                  (map (
+                    {
+                      proto,
+                      host,
+                      guest,
+                      ...
+                    }:
+                    "${proto}:${host.address}:${toString host.port}-" + "${guest.address}:${toString guest.port}"
+                  ))
+                ];
+                guestfwd = lib.pipe config.forwardPorts [
+                  (filter ({ from, ... }: from == "guest"))
+                  (map (
+                    {
+                      proto,
+                      host,
+                      guest,
+                      ...
+                    }:
+                    "${proto}:${host.address}:${toString host.port}-" + "${guest.address}:${toString guest.port}"
+                  ))
+                ];
               };
             };
           };
+          forwardPorts = import ./forward-ports.nix { inherit lib; };
+        };
+        config = {
+          # TODO: migrate assertions from qemu-vm.nix
         };
       }
     );

@@ -18,6 +18,7 @@ let
     typeOf
     types
     mkRenamedOptionModule
+    mkRemovedOptionModule
     ;
 
   qemuValue =
