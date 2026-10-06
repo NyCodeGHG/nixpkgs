@@ -2118,7 +2118,7 @@
   # keep-sorted end
   {
     documentation.nixos.extraModules = [
-      ./virtualisation/qemu-vm.nix
+      ./virtualisation/qemu-vm
       ./image/repart.nix
     ];
   }

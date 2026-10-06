@@ -71,7 +71,7 @@ let
         ++ extraBaseModules;
     };
   baseQemuOS = baseOS [
-    ../../modules/virtualisation/qemu-vm.nix
+    ../../modules/virtualisation/qemu-vm
     testModuleArgs.config.extraBaseNodeModules
     config.nodeDefaults
     {

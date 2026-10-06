@@ -11,7 +11,7 @@ let
     ;
 
   vmVariant = extendModules {
-    modules = [ ./qemu-vm.nix ];
+    modules = [ ./qemu-vm ];
   };
 
   vmVariantWithBootLoader = vmVariant.extendModules {

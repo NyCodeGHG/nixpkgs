@@ -19,7 +19,7 @@ let
 in
 {
   imports = [
-    (modulesPath + "/virtualisation/qemu-vm.nix")
+    (modulesPath + "/virtualisation/qemu-vm")
     (modulesPath + "/virtualisation/guest-networking-options.nix")
     (modulesPath + "/testing/test-instrumentation.nix")
   ];

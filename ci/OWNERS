@@ -119,7 +119,7 @@ nixos/modules/installer/tools/nix-fallback-paths.nix  @Artturin @Ericson2314 @lo
 /nixos/doc/manual/redirects.json   @GetPsyched
 
 # NixOS QEMU virtualisation
-/nixos/modules/virtualisation/qemu-vm.nix                 @raitobezarius
+/nixos/modules/virtualisation/qemu-vm                 @raitobezarius
 /nixos/modules/services/backup/libvirtd-autosnapshot.nix  @6543
 
 # ACME

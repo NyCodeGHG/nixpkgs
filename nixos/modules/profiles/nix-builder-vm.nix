@@ -4,7 +4,7 @@
   primarily macOS.
 
   It combines the backend-neutral remote-builder profile (./nix-builder.nix)
-  with the QEMU VM backend (../virtualisation/qemu-vm.nix), which provides the
+  with the QEMU VM backend (../virtualisation/qemu-vm/default.nix), which provides the
   `config.system.build.vm` runner that the installer script launches.
 */
 { config, ... }:
@@ -12,7 +12,7 @@
 {
   imports = [
     ./nix-builder.nix
-    ../virtualisation/qemu-vm.nix
+    ../virtualisation/qemu-vm
   ];
 
   config = {

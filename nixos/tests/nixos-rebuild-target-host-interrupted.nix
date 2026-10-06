@@ -154,7 +154,7 @@
           ''
             { lib, pkgs, modulesPath, ... }: {
               imports = [
-                (modulesPath + "/virtualisation/qemu-vm.nix")
+                (modulesPath + "/virtualisation/qemu-vm")
                 (modulesPath + "/virtualisation/guest-networking-options.nix")
                 (modulesPath + "/testing/test-instrumentation.nix")
                 (modulesPath + "/../tests/common/user-account.nix")
