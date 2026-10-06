@@ -79,6 +79,20 @@ in
       [ "virtualisation" "qemu" "networkingOptions" ]
       [ "virtualisation" "qemu" "networking" "options" ]
     )
+    (mkRenamedOptionModule
+      [ "virtualisation" "restrictNetwork" ]
+      [
+        "virtualisation"
+        "qemu"
+        "networking"
+        "devices"
+        "default"
+        "backend"
+        "slirp"
+        "settings"
+        "restrict"
+      ]
+    )
   ];
   options.virtualisation.qemu.networking = {
     options = mkOption {

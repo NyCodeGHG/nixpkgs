@@ -721,18 +721,6 @@ in
       '';
     };
 
-    virtualisation.restrictNetwork = mkOption {
-      type = types.bool;
-      default = false;
-      example = true;
-      description = ''
-        If this option is enabled, the guest will be isolated, i.e. it will
-        not be able to contact the host and no guest IP packets will be
-        routed over the host to the outside. This option does not affect
-        any explicitly set forwarding rules.
-      '';
-    };
-
     virtualisation.writableStore = mkOption {
       type = types.bool;
       default = cfg.mountHostNixStore;
