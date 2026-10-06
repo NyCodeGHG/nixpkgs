@@ -357,7 +357,7 @@ let
         -m ${toString config.virtualisation.memorySize} \
         -smp ${toString config.virtualisation.cores} \
         -device virtio-rng-pci \
-        ${concatStringsSep " " config.virtualisation.qemu.networkingOptions} \
+        ${concatStringsSep " " config.virtualisation.qemu.networking.options} \
         ${drivesCmdLine config.virtualisation.qemu.drives} \
         ${concatStringsSep " \\\n    " config.virtualisation.qemu.options} \
         $QEMU_OPTS \
@@ -410,9 +410,10 @@ let
 in
 {
   imports = [
-    ../profiles/qemu-guest.nix
-    ./disk-size-option.nix
-    ./credentials-options.nix
+    ../../profiles/qemu-guest.nix
+    ../disk-size-option.nix
+    ../credentials-options.nix
+    ./networking.nix
     (mkRenamedOptionModule
       [
         "virtualisation"
@@ -827,23 +828,6 @@ in
           By default it enables both serial console and
           `tty0`. The preferred console (last one) is based on
           the value of {option}`virtualisation.graphics`.
-        '';
-      };
-
-      networkingOptions = mkOption {
-        type = types.listOf types.str;
-        example = [
-          "-net nic,netdev=user.0,model=virtio"
-          "-netdev user,id=user.0,\${QEMU_NET_OPTS:+,$QEMU_NET_OPTS}"
-        ];
-        description = ''
-          Networking-related command-line options that should be passed to qemu.
-          The default is to use userspace networking (SLiRP).
-          See the [QEMU Wiki on Networking](https://wiki.qemu.org/Documentation/Networking) for details.
-
-          If you override this option, be advised to keep
-          `''${QEMU_NET_OPTS:+,$QEMU_NET_OPTS}` (as seen in the example)
-          to keep the default runtime behaviour.
         '';
       };
 
@@ -1274,7 +1258,7 @@ in
 
     security.pki.installCACerts = mkIf cfg.useHostCerts false;
 
-    virtualisation.qemu.networkingOptions =
+    virtualisation.qemu.networking.options =
       let
         forwardingOptions = flip concatMapStrings cfg.forwardPorts (
           {

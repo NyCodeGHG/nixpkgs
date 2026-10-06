@@ -4,11 +4,13 @@
   meta.maintainers = [ lib.maintainers.marie ];
 
   nodes = {
+
+
     none =
       { pkgs, ... }:
       {
         virtualisation = {
-          qemu.networkingOptions = [ "-nic none" ];
+          qemu.networking.devices = { };
           interfaces = { };
           vlans = [ ];
         };
