@@ -6,6 +6,7 @@
   installShellFiles,
   versionCheckHook,
   nix-update-script,
+  oniguruma,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -25,6 +26,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     pkg-config
     installShellFiles
   ];
+  buildInputs = [ oniguruma ];
 
   postInstall = ''
     installShellCompletion ./scripts/completions/aichat.{bash,fish,zsh}
