@@ -8,6 +8,9 @@
   openssl,
   installShellFiles,
   writableTmpDirAsHomeHook,
+  aws-lc,
+  zstd,
+  sqlite,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -39,6 +42,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   buildInputs = [
     openssl
+    aws-lc
+    zstd
+    sqlite
   ];
 
   # Wants to create config file where it s not allowed
