@@ -2,10 +2,10 @@
   lib,
   fetchFromGitHub,
   nix-update-script,
-  openssl,
   pkg-config,
   rustPlatform,
   versionCheckHook,
+  aws-lc,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -28,7 +28,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
     rustPlatform.bindgenHook
   ];
 
-  buildInputs = [ openssl ];
+  buildInputs = [
+    aws-lc
+  ];
 
   nativeInstallCheckInputs = [ versionCheckHook ];
 
