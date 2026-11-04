@@ -4,6 +4,10 @@
   rustPlatform,
   versionCheckHook,
   nix-update-script,
+  pkg-config,
+  oniguruma,
+  zstd,
+  sqlite,
 }:
 
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -21,6 +25,12 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   nativeBuildInputs = [
     rustPlatform.bindgenHook
+    pkg-config
+  ];
+  buildInputs = [
+    oniguruma
+    zstd
+    sqlite
   ];
 
   cargoHash = "sha256-BlHdEMt3Z/dBnU8PevH9/g/64G1Vz5lwAps0gv60cmw=";
